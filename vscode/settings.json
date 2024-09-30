@@ -1,0 +1,38 @@
+{
+    "editor.minimap.enabled": false,
+    "editor.suggestSelection": "first",
+    "http.proxyAuthorization": null,
+    "files.autoSave": "afterDelay",
+    "vs-kubernetes": {
+        "vs-kubernetes.crd-code-completion": "enabled",
+        "vscode-kubernetes.minikube-path-mac": "/Users/U736114/.vs-kubernetes/tools/minikube/darwin-arm64/minikube"
+    },
+    "explorer.confirmDelete": false,
+    "git.openRepositoryInParentFolders": "never",
+    "git.enableSmartCommit": true,
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+        },
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "terminal.external.osxExec": "iTerm.app",
+    "terminal.integrated.fontFamily": "MesloLGS NF",
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.fontSize": 12,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.mypy_cache": true,
+        "**/.pytest_cache": true,
+        "**/.ruff_cache": true
+    },
+    "editor.formatOnSave": true,
+    "workbench.startupEditor": "newUntitledFile",
+    "workbench.colorTheme": "Default Light Modern",
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.tree.indent": 12,
+    "window.zoomLevel": 1,
+    "yaml.format.enable": true,
+}
