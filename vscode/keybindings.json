@@ -1,0 +1,5 @@
+{
+  "key": "ctrl+e",
+  "command": "workbench.action.terminal.new",
+  "when": "terminalProcessSupported || terminalWebExtensionContributedProfile"
+}
