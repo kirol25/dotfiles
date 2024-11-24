@@ -31,7 +31,7 @@
     "workbench.colorTheme": "One Dark Pro",
     "workbench.iconTheme": "material-icon-theme",
     "workbench.editor.enablePreview": false,
-    "workbench.editor.showTabs":"none",
+    "workbench.editor.showTabs": "none",
     "workbench.tree.indent": 12,
     "window.zoomLevel": 1,
     "window.nativeTabs": true
