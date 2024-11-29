@@ -24,6 +24,10 @@ brew install helm
 echo "Installing Helmfile..."
 brew install helmfile
 
+# Install Taskfile
+echo "Installing Taskfile..."
+brew install go-task/tap/go-task
+
 # Final Brew Cleanup
 echo "Running brew cleanup..."
 brew cleanup
