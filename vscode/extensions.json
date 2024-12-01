@@ -12,8 +12,11 @@
     "bierner markdown-mermaid",
     "postman.postman-for-vscode",
     "ms-azuretools.vscode-docker",
+    //Terraform
+    "hashicorp.terraform",
     // Visual extensions
     "zhuangtongfa.material-theme",
-    "pkief.material-icon-theme"
+    "pkief.material-icon-theme",
+    "redhat.vscode-yaml"
   ]
 }
