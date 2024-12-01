@@ -115,6 +115,9 @@ alias gco='git checkout'
 alias gp='git push'
 alias gl='git pull'
 alias gfp='git fetch --prune'
+alias p='pyright'
+alias rf='ruff format .'
+alias rc='ruff check --fix'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
