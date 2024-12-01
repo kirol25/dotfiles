@@ -124,3 +124,17 @@ alias rc='ruff check --fix'
 
 # Load Angular CLI autocompletion.
 source <(ng completion script)
+
+# Login to AWS SSO and set the profile
+function aws-sso () {
+
+  if [ -z "$1" ]
+  then
+    echo "Please provide the profile name as an argument!"
+    return
+  fi
+  
+  aws sso login --profile $1
+  export AWS_PROFILE=$1
+  echo " > Logged in to AWS SSO and set profile to $1"
+}
