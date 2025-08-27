@@ -110,6 +110,8 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias k=kubectl
 alias h=helm
+
+# == Git ==
 alias gcb='git checkout -b'
 alias gco='git checkout'
 alias gp='git push'
@@ -117,9 +119,23 @@ alias gs='git stash'
 alias gsp='git stash pop'
 alias gl='git pull'
 alias gfp='git fetch --prune'
+
+# == Python ==
 alias p='pyright'
+
+# == Ruff ==
 alias rf='ruff format .'
 alias rc='ruff check --fix'
+
+# == Terraform ==
+alias tfmt='terraform fmt --recursive'
+alias tfp='terraform plan'
+alias tfa='terraform apply'
+
+# == Ollama ==
+alias o='ollama'
+alias ol='ollama list'
+alias or='ollama run'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
