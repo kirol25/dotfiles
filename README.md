@@ -4,7 +4,7 @@ Personal macOS development environment — shell, editor, and tooling config.
 
 ## Structure
 
-```
+```text
 dotfiles/
 ├── install.sh              # Main install script
 ├── zsh-setup/
