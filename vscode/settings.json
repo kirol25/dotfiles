@@ -1,45 +1,77 @@
 {
+  "editor.formatOnSave": true,
+  "editor.fontSize": 12,
+  "editor.tabSize": 2,
+  "editor.minimap.enabled": false,
+  "editor.suggestSelection": "first",
+  "http.proxyAuthorization": null,
+  "files.autoSave": "afterDelay",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true
+  },
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "explorer.confirmPasteNative": false,
+  "git.openRepositoryInParentFolders": "never",
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  "git.replaceTagsWhenPull": true,
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    },
     "editor.formatOnSave": true,
-    "editor.fontSize": 12,
-    "editor.tabSize": 2,
-    "editor.minimap.enabled": false,
-    "editor.suggestSelection": "first",
-    "http.proxyAuthorization": null,
-    "files.autoSave": "afterDelay",
-    "files.exclude": {
-        "**/__pycache__": true,
-        "**/.mypy_cache": true,
-        "**/.pytest_cache": true,
-        "**/.ruff_cache": true
-    },
-    "explorer.confirmDelete": false,
-    "git.openRepositoryInParentFolders": "never",
-    "git.enableSmartCommit": true,
-    "[python]": {
-        "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit"
-        },
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "charliermarsh.ruff"
-    },
-    "search.exclude": {
-        "**/.venv": true,
-        "**/.git": true,
-        "**/.ruff_cache": true,
-        "**/.mypy_cache": true,
-        "**/.pytest_cache": true
-    },
-    "terminal.external.osxExec": "iTerm.app",
-    "terminal.integrated.fontFamily": "MesloLGS NF",
-    "terminal.integrated.cursorStyle": "line",
-    "terminal.integrated.cursorBlinking": true,
-    "terminal.integrated.fontSize": 12,
-    "workbench.startupEditor": "newUntitledFile",
-    "workbench.colorTheme": "One Dark Pro",
-    "workbench.iconTheme": "material-icon-theme",
-    "workbench.editor.enablePreview": false,
-    "workbench.editor.showTabs": "none",
-    "workbench.tree.indent": 12,
-    "window.zoomLevel": 1,
-    "window.nativeTabs": true
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "search.exclude": {
+    "**/.venv": true,
+    "**/.git": true,
+    "**/.ruff_cache": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true
+  },
+  "terminal.external.osxExec": "iTerm.app",
+  "terminal.integrated.fontFamily": "MesloLGS NF",
+  "terminal.integrated.cursorStyle": "line",
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.fontSize": 12,
+  "workbench.tree.indent": 12,
+  "workbench.startupEditor": "newUntitledFile",
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.showTabs": "none",
+  "workbench.settings.applyToAllProfiles": [],
+  "workbench.editorAssociations": {
+    "*.copilotmd": "vscode.markdown.preview.editor",
+    "*.sqlite3": "default"
+  },
+  "window.zoomLevel": 1,
+  "window.nativeTabs": true,
+  "window.customTitleBarVisibility": "never",
+  "dart.flutterSdkPath": "/Users/lorikbajrami/development/flutter",
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+  "dart.openDevTools": "flutter",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "diffEditor.ignoreTrimWhitespace": false,
+  "security.workspace.trust.untrustedFiles": "open",
+  "chat.commandCenter.enabled": false,
+  "database-client.autoSync": true,
+  "docker.extension.enableComposeLanguageServer": false,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "vsicons.dontShowNewVersionMessage": true,
+  "liveServer.settings.donotShowInfoMsg": true
 }
