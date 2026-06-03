@@ -17,6 +17,7 @@
     // Visual extensions
     "zhuangtongfa.material-theme",
     "pkief.material-icon-theme",
-    "redhat.vscode-yaml"
+    "redhat.vscode-yaml",
+    "tomoki1207.pdf"
   ]
 }
