@@ -28,6 +28,10 @@ brew install helmfile
 echo "Installing Taskfile..."
 brew install go-task/tap/go-task
 
+# Install Herdr (terminal multiplexer)
+echo "Installing Herdr..."
+brew install herdr
+
 # Final Brew Cleanup
 echo "Running brew cleanup..."
 brew cleanup
