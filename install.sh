@@ -62,6 +62,30 @@ setup_vscode_settings() {
   done
 }
 
+# ── Herdr config ─────────────────────────────────────────────────────────────
+# Copied, not symlinked: Herdr rewrites files in its config folder.
+setup_herdr() {
+  echo ">>> Setting up Herdr config..."
+
+  local src="$DOTFILES_DIR/herdr"
+  local dst="$HOME/.config/herdr-app"
+
+  mkdir -p "$dst/layouts" "$dst/themes" "$dst/mods"
+
+  for file in keys.json settings.json; do
+    if [ -f "$dst/$file" ] && ! cmp -s "$src/$file" "$dst/$file"; then
+      echo "  backing up existing $file to $file.bak"
+      cp "$dst/$file" "$dst/$file.bak"
+    fi
+    cp "$src/$file" "$dst/$file"
+  done
+
+  cp "$src"/layouts/*.json "$dst/layouts/"
+  cp "$src"/themes/*.json "$dst/themes/"
+  cp -R "$src"/mods/. "$dst/mods/"
+  echo "  copied $src to $dst"
+}
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 main() {
   echo "=============================="
@@ -72,6 +96,7 @@ main() {
   install_vscode_extensions
   setup_zshrc
   setup_vscode_settings
+  setup_herdr
 
   echo ""
   echo "=============================="

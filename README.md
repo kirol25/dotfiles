@@ -36,6 +36,7 @@ The install script will:
 - Install VSCode extensions
 - Symlink `.zshrc` to `~/.zshrc` (backs up existing one)
 - Symlink VSCode `settings.json` and `keybindings.json` to the VSCode user directory
+- Copy the Herdr config to `~/.config/herdr-app` (backs up existing `keys.json` and `settings.json`)
 
 ## Tools
 
