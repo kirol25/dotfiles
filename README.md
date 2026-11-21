@@ -13,8 +13,14 @@ dotfiles/
 │   ├── settings.json       # Editor settings
 │   ├── keybindings.json    # Custom keybindings
 │   └── extensions.json     # Recommended extensions
-└── mac-tools/
-    └── brew-setup.sh       # Homebrew packages
+├── mac-tools/
+│   └── brew-setup.sh       # Homebrew packages
+└── herdr/                  # Herdr app config (copy into ~/.config/herdr-app)
+    ├── keys.json           # Keybindings
+    ├── settings.json       # App settings
+    ├── layouts/            # kirol25 layout
+    ├── themes/             # kirol25 light and dark themes
+    └── mods/               # Custom mods used by the layout
 ```
 
 ## Install
