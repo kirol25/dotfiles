@@ -12,5 +12,7 @@
   "theme": {
     "light": "kirol25-light",
     "dark": "kirol25-dark"
-  }
+  },
+  "copy_on_select": true,
+  "clipboard_write": true
 }
