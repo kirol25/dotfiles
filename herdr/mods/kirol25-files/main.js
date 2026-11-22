@@ -2,7 +2,8 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState } from "gpui-base";
 import EXCLUDE from "./exclude.js";
-import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window } from "herdr";
+import { FileMenu, CHANGED } from "./menu.js";
+import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window, props, shared, openOverlay } from "herdr";
 
 function location() {
   const space = spaces().find(s => s.active), f = focused();
@@ -43,6 +44,10 @@ async function directory(path, on) {
 
 export default class Files extends View {
   init(_props, cx) {
+    // The same mod is its own right-click menu when opened as a popup with a target.
+    const p = props();
+    if (p?.target) { this.menu = new FileMenu(p, cx); return; }
+    this.changed = shared(CHANGED)?.at;
     this.saved = new Map();
     this.entries = new Map(); this.folders = new Set(); this.pending = new Set(); this.marks = {};
     try { this.showExcluded = localStorage.getItem("showExcluded") === "1"; } catch { this.showExcluded = false; }
@@ -91,7 +96,9 @@ export default class Files extends View {
       try {
         for (const path of ["", ...this.folders]) {
           if (!this.current(context)) return;
-          await this.loadFolder(path, context);
+          // An open folder that went away (renamed, deleted) just closes.
+          try { await this.loadFolder(path, context); }
+          catch (e) { if (!path) throw e; this.folders.delete(path); this.entries.delete(path); }
         }
         const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on }).catch(() => null);
         const marks = {};
@@ -106,8 +113,38 @@ export default class Files extends View {
         if (!this.current(context)) return;
         this.marks = marks; this.error = null; this.watch(cwd, cx);
       } catch (e) { if (this.current(context)) this.error = String(e); }
-      finally { if (this.context === context) this.loading = false; cx.notify(); }
+      finally {
+        if (this.context === context) this.loading = false;
+        if (this.again) { this.again = false; if (this.current(context)) this.refresh(cx); }
+        cx.notify();
+      }
     });
+  }
+
+  // What the right-click menu did: keep open folders and the preview in step, then reload.
+  applyChange(cx) {
+    const c = shared(CHANGED);
+    if (!c || c.at === this.changed) return;
+    this.changed = c.at;
+    if (c.root !== this.root) return;
+    const inside = p => p === c.from || p.startsWith(c.from + "/");
+    if (c.from) {
+      for (const folder of [...this.folders]) if (inside(folder)) {
+        this.folders.delete(folder); this.entries.delete(folder);
+        if (c.to) this.folders.add(c.to + folder.slice(c.from.length));
+      }
+      if (this.file && inside(this.file)) this.show(c.to ? c.to + this.file.slice(c.from.length) : null, cx);
+    }
+    if (c.open) for (let dir = c.open; dir; dir = dir.includes("/") ? dir.slice(0, dir.lastIndexOf("/")) : "") this.folders.add(dir);
+    if (c.show) this.show(c.show, cx);
+    if (this.loading) this.again = true; else this.refresh(cx);
+  }
+
+  openMenu(cx, path, entry) {
+    cx.stop_propagation();
+    if (!this.root || window()?.platform === "windows") return;
+    openOverlay({ mod: "kirol25-files", kind: "popup", width: 230, height: 330,
+      props: { target: { root: this.root, on: this.on, path, name: entry?.name ?? this.root.split("/").pop(), dir: entry ? entry.dir : true } } });
   }
 
   toggle(path, cx) {
@@ -160,6 +197,7 @@ export default class Files extends View {
       const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path), mark = this.marks[`${this.root}/${path}`];
       out.push(h_flex().id(`file-${path}`).h(28).flex_none().pl(8 + depth * 18).pr(8).gap(7).items_center().rounded(7).cursor_pointer().hover(s => s.bg(t.hover))
         .on_click((_e, cx) => entry.dir ? this.toggle(path, cx) : this.show(path, cx))
+        .on_mouse_down("right", (_e, cx) => this.openMenu(cx, path, entry))
         .child(entry.dir ? svg(`mods/kirol25-files/chevron-${open ? "down" : "right"}.svg`).size(12).flex_none().text_color(t.dim) : div().w(12).flex_none())
         .child(svg(`mods/kirol25-files/${entry.dir ? "folder" : "file"}.svg`).size(14).flex_none().text_color(t.muted))
         .child(div().flex_1().min_w(0).truncate().when(skip, el => el.text_color(t.dim)).child(entry.name))
@@ -170,6 +208,8 @@ export default class Files extends View {
   }
 
   render(cx) {
+    if (this.menu) return this.menu.render(cx);
+    this.applyChange(cx);
     if (key() !== this.context?.key) this.refresh(cx);
     const t = theme();
     this.skipped = 0;
@@ -182,7 +222,7 @@ export default class Files extends View {
           .on_click((_e, cx) => { this.showExcluded = !this.showExcluded; try { localStorage.setItem("showExcluded", this.showExcluded ? "1" : "0"); } catch {} cx.notify(); })
           .child(h_flex().h_full().items_center().child(this.showExcluded ? `hide ${skipped}` : `${skipped} hidden`))))
         .child(div().flex_1().min_w(0).truncate().text_right().text_size(12).text_color(t.dim).child(this.file ?? this.root?.split(/[\\/]/).pop() ?? "")))
-      .when(!this.file, el => el.child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().p(6).children(rows)
+      .when(!this.file, el => el.child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().p(6).on_mouse_down("right", (_e, cx) => this.openMenu(cx, "", null)).children(rows)
         .when(Boolean(this.error) || !rows.length, el => el.child(div().p(8).text_size(12).text_color(t.dim).child(this.error || (this.loading ? "Loading files…" : this.root ? "No files" : "No folder"))))
         .when(this.limited, el => el.child(div().p(8).text_size(11).text_color(t.dim).child("File list limited to 500 entries per folder and 5,000 total")))))
       .when(Boolean(this.file), el => el.child(this.code ? Editor.new(this.code).flex_1().min_h(0) : div().p(12).text_color(t.dim).child(this.fileError || "Loading file…")));
