@@ -1,9 +1,11 @@
-// A lazy file browser for the focused pane's folder, with bounded read-only previews.
+// A lazy file browser for the focused pane's folder. A clicked file opens in an editor:
+// local files are editable (Save button, or cmd-s via keys.json "mod:kirol25-files"),
+// remote and very large files are read-only. An unmodified file follows the disk.
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState } from "gpui-base";
 import EXCLUDE from "./exclude.js";
 import { FileMenu, CHANGED } from "./menu.js";
-import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window, props, shared, openOverlay } from "herdr";
+import { spaces, panes, focused, exec, readTextFile, writeTextFile, nextCommand, watchFolder, theme, settings, window, props, shared, openOverlay } from "herdr";
 
 function location() {
   const space = spaces().find(s => s.active), f = focused();
@@ -12,7 +14,10 @@ function location() {
   return { cwd: pane?.cwd || f?.cwd || space?.folder, on, space: space?.id };
 }
 const key = () => JSON.stringify(location());
-const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html" };
+// The editor has no HCL grammar: Ruby's gives Terraform its comments, strings, numbers and booleans.
+const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html",
+  tf: "ruby", tfvars: "ruby", hcl: "ruby", md: "markdown", mdx: "markdown", markdown: "markdown", py: "python", pyi: "python", yml: "yaml", yaml: "yaml" };
+const MAX = 400000;
 const PER_FOLDER = 500, TOTAL = 5000;
 // The kirol25 look: uppercase semibold headings, square bordered badges, tight corners.
 const CLAUDE = "#D97757";
@@ -55,6 +60,7 @@ export default class Files extends View {
     try { this.showExcluded = localStorage.getItem("showExcluded") === "1"; } catch { this.showExcluded = false; }
     this.refresh(cx);
     cx.timer.every(10000, cx => this.refresh(cx));
+    cx.spawn(async cx => { for (;;) { const c = await nextCommand(); if (c === "save") this.save(cx); } });
   }
 
   watch(root, cx) {
@@ -83,13 +89,13 @@ export default class Files extends View {
   refresh(cx) {
     const { cwd, on } = location(), next = key();
     if (next !== this.context?.key) {
-      if (this.context) this.saved.set(this.context.key, { folders: this.folders, file: this.file });
+      if (this.context) this.saved.set(this.context.key, { folders: this.folders, file: this.file, draft: this.dirty && this.code ? this.code.value() : null });
       const saved = this.saved.get(next);
       this.context = { key: next, cwd, on }; this.root = cwd; this.on = on; this.entries = new Map(); this.folders = new Set(saved?.folders);
       this.pending = new Set(); this.marks = {}; this.show(null); this.watched = null; this.error = null; this.limited = false;
       this.loading = false;
-      if (saved?.file) this.show(saved.file, cx);
-    }
+      if (saved?.file) this.show(saved.file, cx, saved.draft);
+    } else this.follow(cx);
     if (!cwd || this.loading) return;
     const context = this.context;
     this.loading = true;
@@ -170,8 +176,10 @@ export default class Files extends View {
     cx.notify();
   }
 
-  show(path, cx) {
+  // Opens a file in the editor; `draft` restores unsaved text kept across a folder switch.
+  show(path, cx, draft) {
     this.code?.release(); this.code = null; this.file = path; this.fileError = null;
+    this.disk = null; this.dirty = false; this.note = null; this.leaving = false;
     if (!path || !cx) return;
     const context = this.context, root = this.root, on = this.on;
     cx.spawn(async cx => {
@@ -180,14 +188,57 @@ export default class Files extends View {
         if (this.file !== path || !this.current(context)) return;
         if (text === null) { this.fileError = "This file is no longer available"; return; }
         if (text.includes("\0")) { this.fileError = "Binary file · no text preview"; return; }
-        const t = theme(), ext = path.includes(".") ? path.split(".").pop() : "txt";
-        this.code = EditorState.new({ language: LANG[ext] ?? ext, readonly: true,
-          value: text.length > 400000 ? text.slice(0, 400000) + "\n… (file truncated)" : text,
+        const t = theme(), name = path.split("/").pop(), ext = name.includes(".") ? name.split(".").pop().toLowerCase() : "txt", big = text.length > MAX;
+        // `disk` is what the file holds; null means a truncated view that must never be written back.
+        this.disk = big ? null : text;
+        const code = this.code = EditorState.new({ language: LANG[ext] ?? ext, readonly: big || Boolean(on),
+          value: big ? text.slice(0, MAX) + "\n… (file truncated)" : text,
           font_family: settings().font_family, font_size: 12,
-          syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6 } });
+          syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6, boolean: t.ansi1, title: t.ansi4, "text.literal": t.ansi2, "punctuation.special": t.ansi5 } });
+        code.on("change", (_e, cx) => {
+          if (this.code !== code || this.disk === null) return;
+          const dirty = code.value() !== this.disk;
+          if (dirty !== this.dirty || this.note || this.leaving) { this.dirty = dirty; this.note = null; this.leaving = false; cx.notify(); }
+        });
+        if (draft != null && draft !== text && !big && !on) { code.set_value(draft); this.dirty = true; }
       } catch { if (this.file === path && this.current(context)) this.fileError = "Cannot preview this file (binary, too large, or unreadable)"; }
       finally { cx.notify(); }
     });
+  }
+
+  get editable() { return Boolean(this.code) && !this.on && this.disk !== null; }
+
+  save(cx) {
+    if (!this.editable || !this.dirty || this.busy) return;
+    const code = this.code, text = code.value(), path = `${this.root}/${this.file}`;
+    this.busy = true;
+    cx.spawn(async cx => {
+      try {
+        await writeTextFile(path, text, this.disk);
+        if (this.code === code) { this.disk = text; this.dirty = code.value() !== text; this.note = null; }
+      } catch { if (this.code === code) this.note = "Not saved: changed on disk"; }
+      finally { this.busy = false; cx.notify(); }
+    });
+  }
+
+  // An open file without unsaved edits follows the disk (an agent may be changing it).
+  follow(cx) {
+    const code = this.code, root = this.root, on = this.on, path = this.file;
+    if (!code || this.dirty || this.busy || this.disk === null) return;
+    cx.spawn(async cx => {
+      try {
+        const text = await readTextFile(`${root}/${path}`, { on });
+        if (this.code !== code || this.dirty || this.busy || text === null || text === this.disk || text.includes("\0") || text.length > MAX) return;
+        this.disk = text; code.set_value(text); this.dirty = false; cx.notify();
+      } catch {}
+    });
+  }
+
+  // Back to the tree; with unsaved edits the first click only warns.
+  back(cx) {
+    if (this.dirty && !this.leaving) { this.leaving = true; this.note = "Unsaved: click again to discard"; }
+    else this.show(null);
+    cx.notify();
   }
 
   rows(prefix, depth, out, t) {
@@ -218,14 +269,19 @@ export default class Files extends View {
     const rows = this.file ? [] : this.rows("", 0, [], t), skipped = this.skipped;
     return v_flex().id("files").size_full().min_h(0).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border).text_color(t.foreground).text_size(13)
       .child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
-        .when(Boolean(this.file), el => el.child(div().id("files-back").size(22).flex_none().flex().items_center().justify_center().rounded(4).cursor_pointer().text_color(t.muted).hover(s => s.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => { this.show(null); cx.notify(); }).child(svg("mods/claude-chrome/chevron-left.svg").size(14))))
+        .when(Boolean(this.file), el => el.child(div().id("files-back").size(22).flex_none().flex().items_center().justify_center().rounded(4).cursor_pointer().text_color(t.muted).hover(s => s.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => this.back(cx)).child(svg("mods/claude-chrome/chevron-left.svg").size(14))))
         .when(!this.file, el => el.child(svg("mods/claude-chrome/files.svg").size(14).flex_none().text_color(CLAUDE)))
         .child(div().flex_none().font_semibold().text_size(16).child("FILES"))
         .when(!this.file && skipped > 0, el => el.child(div().id("files-excluded").flex_none().px(5).h(16).cursor_pointer().border(1).border_color((this.showExcluded ? t.foreground : t.dim) + "99").font_semibold().text_size(10).text_color(this.showExcluded ? t.foreground : t.dim).hover(s => s.bg(t.hover))
           .on_click((_e, cx) => { this.showExcluded = !this.showExcluded; try { localStorage.setItem("showExcluded", this.showExcluded ? "1" : "0"); } catch {} cx.notify(); })
           .child(h_flex().h_full().items_center().child(this.showExcluded ? `HIDE ${skipped}` : `${skipped} HIDDEN`))))
         .child(div().flex_1().h(1).min_w(8).bg(CLAUDE + "55"))
-        .child(div().flex_initial().min_w(0).max_w(220).truncate().font_semibold().text_size(this.file ? 12 : 13).text_color(this.file ? t.muted : CLAUDE).child(this.file ? this.file.split("/").pop() : (this.root?.split(/[\\/]/).pop() ?? "").toUpperCase())))
+        .child(div().flex_initial().min_w(0).max_w(220).truncate().font_semibold().text_size(this.file ? 12 : 13).text_color(this.note ? t.ansi1 : this.file ? t.muted : CLAUDE).child(this.note ?? (this.file ? this.file.split("/").pop() : (this.root?.split(/[\\/]/).pop() ?? "").toUpperCase())))
+        .when(this.editable, el => el
+          .child(div().w(7).h(7).rounded(4).flex_none().when(this.dirty, d => d.bg(t.foreground)))
+          .child(div().id("files-save").flex_none().px(8).h(20).flex().items_center().border(1).font_semibold().text_size(10)
+            .border_color((this.dirty ? CLAUDE : t.dim) + "99").text_color(this.dirty ? CLAUDE : t.dim)
+            .when(this.dirty, b => b.cursor_pointer().hover(s => s.bg(t.hover))).on_click((_e, cx) => this.save(cx)).child(this.busy ? "SAVING" : "SAVE"))))
       .when(!this.file, el => el.child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().p(6).on_mouse_down("right", (_e, cx) => this.openMenu(cx, "", null)).children(rows)
         .when(Boolean(this.error) || !rows.length, el => el.child(div().p(8).text_size(12).text_color(t.dim).child(this.error || (this.loading ? "Loading files…" : this.root ? "No files" : "No folder"))))
         .when(this.limited, el => el.child(div().p(8).text_size(11).text_color(t.dim).child("File list limited to 500 entries per folder and 5,000 total")))))

@@ -75,5 +75,8 @@
   },
   "mod:kirol25-editor": {
     "cmd-s": "kirol25-editor.save"
+  },
+  "mod:kirol25-files": {
+    "cmd-s": "kirol25-files.save"
   }
 }

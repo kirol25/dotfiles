@@ -5,7 +5,9 @@ import { View, div } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState } from "gpui-base";
 import { props, readTextFile, writeTextFile, nextCommand, theme, settings, checking } from "herdr";
 
-const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html" };
+const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html",
+  // No HCL grammar: Ruby's gives Terraform its comments, strings, numbers and booleans.
+  tf: "ruby", tfvars: "ruby", hcl: "ruby", md: "markdown", mdx: "markdown", py: "python", yml: "yaml" };
 const NAMES = { ts: "TypeScript", tsx: "TypeScript JSX", js: "JavaScript", jsx: "JavaScript JSX", mjs: "JavaScript", py: "Python", rs: "Rust", go: "Go",
   css: "CSS", html: "HTML", json: "JSON", md: "Markdown", yaml: "YAML", yml: "YAML", toml: "TOML", sh: "Shell Script", dart: "Dart", tf: "Terraform", txt: "Plain Text" };
 
