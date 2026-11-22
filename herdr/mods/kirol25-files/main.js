@@ -14,6 +14,8 @@ function location() {
 const key = () => JSON.stringify(location());
 const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html" };
 const PER_FOLDER = 500, TOTAL = 5000;
+// The kirol25 look: uppercase semibold headings, square bordered badges, tight corners.
+const CLAUDE = "#D97757";
 const EXCLUDED = EXCLUDE.map(p => new RegExp("^" + p.split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$"));
 const excluded = name => EXCLUDED.some(re => re.test(name));
 
@@ -195,13 +197,13 @@ export default class Files extends View {
       const skip = excluded(entry.name);
       if (skip) { this.skipped++; if (!this.showExcluded) continue; }
       const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path), mark = this.marks[`${this.root}/${path}`];
-      out.push(h_flex().id(`file-${path}`).h(28).flex_none().pl(8 + depth * 18).pr(8).gap(7).items_center().rounded(7).cursor_pointer().hover(s => s.bg(t.hover))
+      out.push(h_flex().id(`file-${path}`).h(28).flex_none().pl(8 + depth * 18).pr(8).gap(7).items_center().rounded(4).cursor_pointer().hover(s => s.bg(t.hover))
         .on_click((_e, cx) => entry.dir ? this.toggle(path, cx) : this.show(path, cx))
         .on_mouse_down("right", (_e, cx) => this.openMenu(cx, path, entry))
         .child(entry.dir ? svg(`mods/kirol25-files/chevron-${open ? "down" : "right"}.svg`).size(12).flex_none().text_color(t.dim) : div().w(12).flex_none())
         .child(svg(`mods/kirol25-files/${entry.dir ? "folder" : "file"}.svg`).size(14).flex_none().text_color(t.muted))
         .child(div().flex_1().min_w(0).truncate().when(skip, el => el.text_color(t.dim)).child(entry.name))
-        .when(Boolean(mark), el => el.child(div().text_size(11).text_color(mark === "A" ? t.ansi2 : mark === "D" || mark === "U" ? t.ansi1 : t.blocked).child(mark))));
+        .when(Boolean(mark), el => { const tone = mark === "A" ? t.done : mark === "D" || mark === "U" ? t.blocked : t.working; return el.child(div().flex_none().w(16).h(16).flex().items_center().justify_center().border(1).border_color(tone + "99").text_color(tone).font_semibold().text_size(10).child(mark)); }));
       if (entry.dir && open) this.rows(path, depth + 1, out, t);
     }
     return out;
@@ -216,12 +218,14 @@ export default class Files extends View {
     const rows = this.file ? [] : this.rows("", 0, [], t), skipped = this.skipped;
     return v_flex().id("files").size_full().min_h(0).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border).text_color(t.foreground).text_size(13)
       .child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
-        .when(Boolean(this.file), el => el.child(div().id("files-back").w(20).cursor_pointer().text_color(t.muted).on_click((_e, cx) => { this.show(null); cx.notify(); }).child("←")))
-        .child(div().font_semibold().child("Files"))
-        .when(!this.file && skipped > 0, el => el.child(div().id("files-excluded").flex_none().px(6).h(20).rounded(6).cursor_pointer().text_size(11).text_color(this.showExcluded ? t.foreground : t.dim).hover(s => s.bg(t.hover))
+        .when(Boolean(this.file), el => el.child(div().id("files-back").size(22).flex_none().flex().items_center().justify_center().rounded(4).cursor_pointer().text_color(t.muted).hover(s => s.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => { this.show(null); cx.notify(); }).child(svg("mods/claude-chrome/chevron-left.svg").size(14))))
+        .when(!this.file, el => el.child(svg("mods/claude-chrome/files.svg").size(14).flex_none().text_color(CLAUDE)))
+        .child(div().flex_none().font_semibold().text_size(16).child("FILES"))
+        .when(!this.file && skipped > 0, el => el.child(div().id("files-excluded").flex_none().px(5).h(16).cursor_pointer().border(1).border_color((this.showExcluded ? t.foreground : t.dim) + "99").font_semibold().text_size(10).text_color(this.showExcluded ? t.foreground : t.dim).hover(s => s.bg(t.hover))
           .on_click((_e, cx) => { this.showExcluded = !this.showExcluded; try { localStorage.setItem("showExcluded", this.showExcluded ? "1" : "0"); } catch {} cx.notify(); })
-          .child(h_flex().h_full().items_center().child(this.showExcluded ? `hide ${skipped}` : `${skipped} hidden`))))
-        .child(div().flex_1().min_w(0).truncate().text_right().text_size(12).text_color(t.dim).child(this.file ?? this.root?.split(/[\\/]/).pop() ?? "")))
+          .child(h_flex().h_full().items_center().child(this.showExcluded ? `HIDE ${skipped}` : `${skipped} HIDDEN`))))
+        .child(div().flex_1().h(1).min_w(8).bg(CLAUDE + "55"))
+        .child(div().flex_initial().min_w(0).max_w(220).truncate().font_semibold().text_size(this.file ? 12 : 13).text_color(this.file ? t.muted : CLAUDE).child(this.file ? this.file.split("/").pop() : (this.root?.split(/[\\/]/).pop() ?? "").toUpperCase())))
       .when(!this.file, el => el.child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().p(6).on_mouse_down("right", (_e, cx) => this.openMenu(cx, "", null)).children(rows)
         .when(Boolean(this.error) || !rows.length, el => el.child(div().p(8).text_size(12).text_color(t.dim).child(this.error || (this.loading ? "Loading files…" : this.root ? "No files" : "No folder"))))
         .when(this.limited, el => el.child(div().p(8).text_size(11).text_color(t.dim).child("File list limited to 500 entries per folder and 5,000 total")))))

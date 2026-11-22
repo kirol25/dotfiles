@@ -6,6 +6,7 @@ import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { exec, closeOverlay, notify, setShared, theme, window } from "herdr";
 
 export const CHANGED = "kirol25-files.changed";
+const CLAUDE = "#D97757";
 const exists = 'if [ -e "$1" ] || [ -L "$1" ]; then echo "\\"${1##*/}\\" already exists" >&2; exit 1; fi; ';
 const DUPLICATE = 'src=$1; dir=${src%/*}; name=${src##*/}; base=$name; ext=; if [ ! -d "$src" ]; then case $name in ?*.*) base=${name%.*}; ext=.${name##*.};; esac; fi; n=1; dst="$dir/$base copy$ext"; while [ -e "$dst" ] || [ -L "$dst" ]; do n=$((n+1)); dst="$dir/$base copy $n$ext"; done; cp -R -- "$src" "$dst"';
 
@@ -83,26 +84,31 @@ export class FileMenu {
 
   render() {
     const t = theme(), { target } = this, entry = Boolean(target.path), mac = !target.on && window()?.platform === "macos";
-    const root = v_flex().id("file-menu").track_focus(this.handle).w_full().p(5).bg(t.popover).text_color(t.foreground).text_size(12.5);
-    const button = (id, text, primary, action) => h_flex().id(id).h(28).px(12).items_center().rounded(7).border_1()
-      .border_color(primary ? t.solid : t.input).bg(primary ? t.solid : t.raised).text_color(primary ? t.solid_foreground : t.foreground)
-      .text_size(12).cursor_pointer().hover(s => s.opacity(0.88)).on_click(action).child(text);
+    const heading = (text, tone) => h_flex().h(22).flex_none().gap(6).items_center()
+      .child(div().flex_initial().min_w(0).truncate().font_semibold().text_size(12).text_color(tone).child(text.toUpperCase()))
+      .child(div().flex_1().min_w(8).h(1).bg(tone + "55"));
+    const root = v_flex().id("file-menu").track_focus(this.handle).w_full().p(5).bg(t.popover).text_color(t.foreground).text_size(12.8);
+    const button = (id, text, primary, action) => h_flex().id(id).h(24).px(10).items_center().border(1)
+      .border_color(primary ? tone : t.dim + "99").bg(primary ? tone + "26" : t.popover).text_color(primary ? tone : t.muted)
+      .font_semibold().text_size(10.5).cursor_pointer().hover(s => s.bg(primary ? tone + "44" : t.hover)).on_click(action).child(text.toUpperCase());
+    const tone = this.mode === "delete" ? t.blocked : CLAUDE;
     if (this.mode === "delete") return root.p(12).gap(10)
       .on_key_down((e, cx) => { if (e.key === "enter") { this.remove(cx); cx.stop_propagation(); } })
-      .child(div().font_semibold().child(this.trash ? "Move to Trash?" : "Delete permanently?"))
+      .child(heading(this.trash ? "Move to Trash?" : "Delete permanently?", t.blocked))
       .child(div().text_size(12).text_color(t.muted).child(`${target.name}${target.dir ? " and everything in it" : ""}`))
       .child(h_flex().gap(8).justify_end()
         .child(button("fm-no", "Cancel", false, () => this.close()))
         .child(button("fm-yes", this.trash ? "Move to Trash" : "Delete", true, (_e, cx) => this.remove(cx))));
     if (this.mode !== "menu") return root.p(12).gap(8)
-      .child(div().font_semibold().child(this.mode === "rename" ? "Rename" : this.mode === "folder" ? "New folder" : "New file"))
-      .child(Input.new(this.input).h(32).px(9).rounded(8).border_1().border_color(this.problem ? t.ansi1 : t.accent).bg(t.background).text_color(t.foreground))
-      .child(div().text_size(11).text_color(this.problem ? t.ansi1 : t.dim).child(this.problem ?? (this.mode === "rename" ? "Enter renames, Esc cancels" : `In ${this.home || target.root.split("/").pop()} · Enter creates`)));
-    const item = (id, text, action, color) => h_flex().id(id).h(27).px(9).items_center().rounded(6).cursor_pointer()
+      .child(heading(this.mode === "rename" ? "Rename" : this.mode === "folder" ? "New folder" : "New file", CLAUDE))
+      .child(Input.new(this.input).h(30).px(8).rounded(3).border_1().border_color(this.problem ? t.blocked : t.accent).bg(t.background).text_color(t.foreground))
+      .child(div().text_size(11).text_color(this.problem ? t.blocked : t.dim).child(this.problem ?? (this.mode === "rename" ? "Enter renames, Esc cancels" : `In ${this.home || target.root.split("/").pop()} · Enter creates`)));
+    const item = (id, text, action, color) => h_flex().id(id).h(27).px(8).items_center().rounded(4).cursor_pointer()
       .when(Boolean(color), el => el.text_color(color)).hover(s => s.bg(t.hover)).on_click(action).child(text);
     const line = () => div().mx(7).my(4).h(1).flex_none().bg(t.border);
     const dot = target.dir ? -1 : target.name.lastIndexOf(".");
     return root
+      .child(div().px(8).pt(2).pb(3).child(heading(target.name, CLAUDE)))
       .child(item("fm-file", "New file…", (_e, cx) => this.ask(cx, "file", "")))
       .child(item("fm-folder", "New folder…", (_e, cx) => this.ask(cx, "folder", "")))
       .child(line())
@@ -116,6 +122,6 @@ export class FileMenu {
         .child(item("fm-rename", "Rename…", (_e, cx) => this.ask(cx, "rename", target.name, dot > 0 ? dot : undefined)))
         .child(item("fm-dup", "Duplicate", (_e, cx) => this.act(cx, "Duplicate failed", () => this.sh(DUPLICATE, this.full), {})))
         .child(line())
-        .child(item("fm-delete", this.trash ? "Move to Trash…" : "Delete…", (_e, cx) => { this.mode = "delete"; this.handle.focus(); cx.notify(); }, t.ansi1)));
+        .child(item("fm-delete", this.trash ? "Move to Trash…" : "Delete…", (_e, cx) => { this.mode = "delete"; this.handle.focus(); cx.notify(); }, t.blocked)));
   }
 }
