@@ -190,7 +190,7 @@
       "content": {
         "mod": "copy-toast"
       },
-      "edge": "bottom",
+      "edge": "top",
       "align": "center"
     }
   ]
