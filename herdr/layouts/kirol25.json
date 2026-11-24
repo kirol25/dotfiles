@@ -191,7 +191,7 @@
         "mod": "copy-toast"
       },
       "edge": "bottom",
-      "align": "end"
+      "align": "center"
     }
   ]
 }
