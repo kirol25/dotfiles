@@ -183,5 +183,15 @@
   "traffic_lights": [
     12,
     16
+  ],
+  "floating": [
+    {
+      "id": "copy-toast",
+      "content": {
+        "mod": "copy-toast"
+      },
+      "edge": "bottom",
+      "align": "end"
+    }
   ]
 }
